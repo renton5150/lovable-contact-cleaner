@@ -22,7 +22,7 @@ export type Database = {
           nb_lignes_traitees: number
           nom_fichier: string
           statut: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           date_upload?: string
@@ -31,7 +31,7 @@ export type Database = {
           nb_lignes_traitees?: number
           nom_fichier: string
           statut?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           date_upload?: string
@@ -40,7 +40,7 @@ export type Database = {
           nb_lignes_traitees?: number
           nom_fichier?: string
           statut?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

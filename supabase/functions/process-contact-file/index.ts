@@ -33,28 +33,10 @@ serve(async (req) => {
 
     console.log(`Début du traitement de ${fileName} - ${data.length} lignes`);
 
-    // Récupérer le JWT pour l'authentification
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error("Non authentifié - Authorization header manquant");
-    }
-
+    // Mode public : utilisation directe du service role key
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: {
-        headers: { Authorization: authHeader }
-      }
-    });
-
-    // Récupérer l'utilisateur authentifié
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      console.error("Erreur authentification:", userError);
-      throw new Error("Utilisateur non authentifié");
-    }
-
-    console.log(`Utilisateur authentifié: ${user.id}`);
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Détection intelligente des colonnes
     const columns = detectColumns(data[0]);
@@ -74,7 +56,7 @@ serve(async (req) => {
         nb_lignes_total: data.length,
         nb_lignes_traitees: 0,
         statut: 'en_cours',
-        user_id: user.id
+        user_id: null
       })
       .select()
       .single();
