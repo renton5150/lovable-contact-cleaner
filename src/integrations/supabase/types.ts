@@ -99,7 +99,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_civilite: {
+        Args: { prenom_input: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
