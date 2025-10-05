@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { FileUploader } from "@/components/FileUploader";
 import { DataPreview } from "@/components/DataPreview";
-import { Database, Sparkles } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Database, Sparkles, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const [uploadedData, setUploadedData] = useState<any[] | null>(null);
@@ -17,13 +20,21 @@ const Index = () => {
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-              <Database className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <Database className="w-6 h-6 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Enrichisseur de Contacts
+              </h1>
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Enrichisseur de Contacts
-            </h1>
+            <Link to="/admin/import">
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings className="w-4 h-4" />
+                Import Base
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
@@ -111,6 +122,3 @@ const Index = () => {
 };
 
 export default Index;
-
-// Missing Card import
-import { Card } from "@/components/ui/card";
