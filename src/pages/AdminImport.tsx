@@ -137,6 +137,9 @@ export default function AdminImport() {
                     <div className="space-y-1 text-sm">
                       <p>✓ Total de lignes traitées: <strong>{result.processed}</strong></p>
                       <p>✓ Prénoms insérés/mis à jour: <strong>{result.inserted}</strong></p>
+                      {result.skipped > 0 && (
+                        <p className="text-muted-foreground">ℹ Lignes ignorées: <strong>{result.skipped}</strong></p>
+                      )}
                       {result.errors > 0 && (
                         <p className="text-orange-600">⚠ Erreurs: <strong>{result.errors}</strong></p>
                       )}

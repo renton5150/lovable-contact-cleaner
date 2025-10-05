@@ -41,26 +41,50 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // Process in batches of 1000
-    const BATCH_SIZE = 1000;
+    // Fonction pour normaliser les civilités
+    const normalizeCivilite = (civilite: string): string => {
+      const cleaned = civilite.trim().toLowerCase();
+      if (cleaned === 'monsieur' || cleaned === 'm' || cleaned === 'm.') return 'M.';
+      if (cleaned === 'madame' || cleaned === 'mme' || cleaned === 'mme.') return 'Mme';
+      return civilite.trim(); // Retourne la valeur originale si non reconnue
+    };
+
+    // Process in batches of 2000 (optimized for large files)
+    const BATCH_SIZE = 2000;
     let processed = 0;
     let inserted = 0;
     let errors = 0;
+    let skipped = 0;
+    
+    console.log(`Starting batch processing of ${dataLines.length} lines...`);
     
     for (let i = 0; i < dataLines.length; i += BATCH_SIZE) {
       const batch = dataLines.slice(i, i + BATCH_SIZE);
       
-      // Parse batch
-      const records = batch.map(line => {
+      // Parse batch with normalization
+      const records = batch.map((line, idx) => {
         const [name_first, civility_fr] = line.split(';').map(s => s.trim());
+        
+        if (!name_first || !civility_fr) {
+          return null; // Will be filtered out
+        }
+        
         return {
           prenom: name_first,
-          civilite: civility_fr
+          civilite: normalizeCivilite(civility_fr)
         };
-      }).filter(r => r.prenom && r.civilite); // Filter out invalid lines
+      }).filter(r => r !== null); // Filter out invalid lines
+      
+      skipped += (batch.length - records.length);
+      
+      if (records.length === 0) {
+        console.log(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: No valid records, skipping`);
+        processed += batch.length;
+        continue;
+      }
       
       // Insert batch with upsert (ON CONFLICT DO UPDATE)
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('reference_prenoms')
         .upsert(records, {
           onConflict: 'prenom',
@@ -68,17 +92,18 @@ serve(async (req) => {
         });
       
       if (error) {
-        console.error(`Batch error at line ${i}:`, error);
-        errors += batch.length;
+        console.error(`Batch ${Math.floor(i / BATCH_SIZE) + 1} error:`, error);
+        errors += records.length;
       } else {
         inserted += records.length;
       }
       
       processed += batch.length;
       
-      // Log progress every 10 batches
-      if (i % (BATCH_SIZE * 10) === 0) {
-        console.log(`Progress: ${processed}/${dataLines.length} lines processed`);
+      // Log progress every 5 batches (every 10,000 lines)
+      if ((i / BATCH_SIZE) % 5 === 0) {
+        const percentage = ((processed / dataLines.length) * 100).toFixed(1);
+        console.log(`Progress: ${processed}/${dataLines.length} (${percentage}%) - Inserted: ${inserted}, Errors: ${errors}, Skipped: ${skipped}`);
       }
     }
     
@@ -88,7 +113,8 @@ serve(async (req) => {
       processed,
       inserted,
       errors,
-      message: `Import completed: ${inserted} prenoms inserted, ${errors} errors`
+      skipped,
+      message: `Import terminé: ${inserted} prénoms insérés, ${errors} erreurs, ${skipped} lignes ignorées`
     };
     
     console.log('Import completed:', result);
