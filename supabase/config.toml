@@ -2,3 +2,6 @@ project_id = "iksftlqjcfnpsgiptsod"
 
 [functions.import-reference-prenoms]
 verify_jwt = false
+
+[functions.process-contact-file]
+verify_jwt = false
