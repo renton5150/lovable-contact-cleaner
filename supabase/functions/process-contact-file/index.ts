@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -165,7 +165,7 @@ serve(async (req) => {
             fichier_id,
             ligne_numero: lineNumber,
             type_action: 'erreur',
-            details: { error: error.message }
+            details: { error: error instanceof Error ? error.message : String(error) }
           });
         }
       }
@@ -205,7 +205,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: error instanceof Error ? error.message : 'Erreur inconnue'
       }),
       { 
         status: 500,
