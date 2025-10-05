@@ -33,9 +33,28 @@ serve(async (req) => {
 
     console.log(`Début du traitement de ${fileName} - ${data.length} lignes`);
 
+    // Récupérer le JWT pour l'authentification
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error("Non authentifié - Authorization header manquant");
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: {
+        headers: { Authorization: authHeader }
+      }
+    });
+
+    // Récupérer l'utilisateur authentifié
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error("Erreur authentification:", userError);
+      throw new Error("Utilisateur non authentifié");
+    }
+
+    console.log(`Utilisateur authentifié: ${user.id}`);
 
     // Détection intelligente des colonnes
     const columns = detectColumns(data[0]);
@@ -54,7 +73,8 @@ serve(async (req) => {
         nom_fichier: fileName,
         nb_lignes_total: data.length,
         nb_lignes_traitees: 0,
-        statut: 'en_cours'
+        statut: 'en_cours',
+        user_id: user.id
       })
       .select()
       .single();
@@ -218,23 +238,39 @@ serve(async (req) => {
 function detectColumns(firstRow: any): Column {
   const keys = Object.keys(firstRow);
   const result: Column = {};
+  const usedKeys = new Set<string>();
 
   // Recherche colonne prénom
   const prenomPatterns = ['prenom', 'prénom', 'firstname', 'first_name', 'first name'];
   for (const key of keys) {
     if (prenomPatterns.some(p => key.toLowerCase().includes(p))) {
       result.prenom = key;
+      usedKeys.add(key);
       break;
     }
   }
 
-  // Recherche colonne nom
+  // Recherche colonne nom (en excluant les colonnes déjà utilisées)
   const nomPatterns = ['nom', 'name', 'lastname', 'last_name', 'last name', 'surname'];
   for (const key of keys) {
-    if (nomPatterns.some(p => key.toLowerCase().includes(p))) {
+    if (!usedKeys.has(key) && nomPatterns.some(p => key.toLowerCase().includes(p))) {
       result.nom = key;
+      usedKeys.add(key);
       break;
     }
+  }
+
+  // Validation stricte
+  if (!result.prenom || !result.nom) {
+    throw new Error(
+      `Colonnes Prénom ou Nom non détectées. Colonnes disponibles: ${keys.join(', ')}`
+    );
+  }
+
+  if (result.prenom === result.nom) {
+    throw new Error(
+      `La même colonne "${result.prenom}" a été détectée pour Prénom et Nom. Vérifiez votre fichier.`
+    );
   }
 
   return result;
